@@ -26,24 +26,26 @@ def draw_target_object_center(video_file,obj_centers):
     vidwrite.write(image)
     ok, image = cap.read()
   vidwrite.release()
-
-def alpha_beta_filter(data, alpha=0.2, beta=0.1):
-    x_hat = data[0][0]  # Initial x position
-    y_hat = data[0][1]  # Initial y position
-    vx_hat = 0  # Initial x velocity
-    vy_hat = 0  # Initial y velocity
+# 0.33
+def alpha_beta_filter(data, alpha=0.0037, beta= 0.0032, deceleration_factor=0.25):
+    x_hat = data[1][0]  # Initial x position
+    y_hat = data[1][1]  # Initial y position
+    vx_hat = 1    # - 横向向左
+    vy_hat = -0.3  # - 竖向向上
     estimated_positions = [(x_hat, y_hat)]
     dt = 1  # Time step
     for i in range(1, len(data)):
         zx, zy = data[i]
         x_pred = x_hat + dt * vx_hat
-        y_pred = y_hat + dt * vy_hat
+        y_pred = y_hat +  dt * vy_hat
         x_hat = x_pred + alpha * (zx - x_pred)
         y_hat = y_pred + alpha * (zy - y_pred)
-        vx_hat = vx_hat + (beta / dt) * (zx - x_pred)
-        vy_hat = vy_hat + (beta / dt) * (zy - y_pred)
+        # Apply deceleration factor to velocity directly
+        vx_hat = (vx_hat + ((beta / dt) * (zx - x_pred))) * deceleration_factor
+        vy_hat = (vy_hat + (beta / dt) * (zy - y_pred)) * deceleration_factor
         estimated_positions.append((x_hat, y_hat))
     return estimated_positions
+
 
 frame_dict = load_obj_each_frame("object_to_track.json")
 filtered_positions = alpha_beta_filter(frame_dict['obj'])
