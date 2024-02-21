@@ -1,0 +1,66 @@
+Both refilled_tracking_points and tracking_data dictionaries contain data under the key 'obj'. The values associated with this key are lists of coordinates representing tracking points. The refilled_tracking_points seem to provide filled-in positions where the original tracking might have missed or had uncertainties, denoted as [-1, -1] in the tracking_data.
+
+Summary of the Assignment
+
+This assignment has two parts:
+
+1. Single Object Tracking with a Bayesian Recursive Filter: Given detected 2D locations of a vehicle over multiple frames in the video, you need to implement an alpha-beta filter or a Kalman filter to generate a smooth 2D track of the vehicle based on these 2D observations.
+
+2. Multi-Object Tracking and Data Association: Given the bounding boxes of multiple objects detected in the video, you need to track them by assigning a unique ID to each object over the video as long as they are detected.
+
+
+You are given a list of centers for a vehicle over frames in a video, formatted as [[x_1,y_1],...,[x_n,y_n]. The object location might be missing in certain frames, annotated as [-1,-1].
+Your task is to build a tracker that estimates the 2D trajectory of the vehicle and smoothes the 2D track with an alpha-beta filter or Kalman filter. 
+
+{"obj": [[-1, -1], [312, 228],...,[166, 100], [166, 101]
+} 
+Red: track based on observed centers
+Blue: ideal track smoothed (e.g. by filter)
+
+
+1. Code (10 points + 10 extra credits)
+    1. Don’t use deep learning code and if it can generate proper tracks in a video.   (Easy 10 points if you are honest in what you’ve done.)
+    2. Optional: Implement a Kalman filter (instead of the Alpha-Beta filter) to estimate the vehicle track. (10 extra pts)
+2. Tracks (20 points)
+    1. Write your smoothed tracks in the format that is the same as the given one. However, your track should not include any [-1,-1]. We will compare the track with the one based on the observed centers. If they are similar enough, you will get full credit. If not, points will be deducted proportionally according to how dissimilar they are.
+    2. Check part_1_object_tracking.json as an submission example.
+3. Visualization (20 points)
+    1. A .gif or .mp4 that draws the track of the object. 
+    2. Your track should be following the moving vehicle (10 pts),                                      and it should be sufficiently smooth (10 pts).
+
+
+You are given a list of object bounding boxes in each frame of a video.
+Your task is to build an object assignment algorithm that assigns a unique ID to each object.
+Ideally, one object should only have one unique ID (a bad example is given on the right)
+{"0": [{"x_min": 564, "y_min": 410, "width": 45, "height": 32}, …, {"x_min": 302, "y_min": 219, "width": 23, "height": 19}, {"x_min": 212, "y_min": 160, "width": 17, "height": 16},...]
+a list of object bounding boxes in each frame of a video.
+Bad example: (A naive assignment based on closest object distance between last and current frame)
+
+
+1. Code (10 points + 10 extra credits)
+2. We are going to check whether your code includes deep learning code and if it can generate proper IDs in a video.   (Easy 10 points if you are honest in what you’ve done.)
+3. Optional: Implement the Hungarian algorithm for matching. (10 extra pts)
+4. Object assignment (20 points)
+    1. Modify the given bounding boxes data file, add an additional “id” key-value pair to each item to indicate the unique ID for an detected object in the video. Other than that, do not change anything in the file. Submit the modified data file. 
+    2. We have tracker for the detected objects in the video.  We will run our code to look for the ID of these objects to see if your IDs of these objects are consistent over different frames. (20 pts)
+    3. Check part_2_frame_dict.json as an submission example.
+5. Visualization (20 points)
+    1. A .gif or .mp4 that draws the IDs of the detected objects. (10 pts)
+    2. Each detected object should have a unique ID, and the IDs should be consistent over different frames (10 pts)
+
+1. Drawing with OpenCV:
+    1. cv.puttext
+    2. cv.rectangle
+    3. cv.circle
+    4. cv.polyline
+2. Working with video frames (check lab 3)
+3. Alpha-beta filter:
+    1. https://en.wikipedia.org/wiki/Alpha_beta_filter
+4. Hungarian algorithm:
+    1. https://en.wikipedia.org/wiki/Hungarian_algorithm	
+5. pandas and json to read and output data:
+    1. Use ChatGPT for code examples
+We will provide demo code to read and visualize the data, and the rest is left to you to finish.
+
+
+ 
