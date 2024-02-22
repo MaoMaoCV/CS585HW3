@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import cv2 as cv
+import numpy as np
 # from google.colab.patches import cv2_imshow
 
 # part 1:
@@ -45,12 +46,77 @@ def alpha_beta_filter(data, alpha=0.0037, beta= 0.0032, deceleration_factor=0.25
         vy_hat = (vy_hat + (beta / dt) * (zy - y_pred)) * deceleration_factor
         estimated_positions.append((x_hat, y_hat))
     return estimated_positions
+def kalman_filter(tracking_points, tracking_original_points):
+    # Kalman filter initialization
+    dt = 1  # time step
+    
+    # State transition matrix (assuming constant velocity model)
+    A = np.array([[1, 0, dt, 0],
+                  [0, 1, 0, dt],
+                  [0, 0, 1, 0],
+                  [0, 0, 0, 1]])
+    
+    # Observation matrix (we can only observe positions, not velocities)
+    H = np.array([[1, 0, 0, 0],
+                  [0, 1, 0, 0]])
+    
+    # Initial state (position and velocity)
+    x = np.array([[tracking_points[0][0]], [tracking_points[0][1]], [0], [0]])
+    
+    # Process noise covariance (Q) and Measurement noise covariance (R)
+    Q = np.eye(A.shape[0]) * 0.1
+    R = np.eye(H.shape[0]) * 10
+    
+    # Initial estimation error covariance
+    P = np.eye(A.shape[0])
+    
+    # Updated tracking points with Kalman filter
+    updated_tracking_points = []
 
+    for i, point in enumerate(tracking_original_points):
+        if point == [-1, -1]:  # If the data is missing, predict the next state
+            x = np.dot(A, x)
+            P = np.dot(np.dot(A, P), A.T) + Q
+            predicted_position = [x[0,0], x[1,0]]
+        else:
+            # If the data is available, update the state
+            Z = np.array([[tracking_points[i][0]], [tracking_points[i][1]]])
+            
+            # Kalman gain
+            S = np.dot(np.dot(H, P), H.T) + R
+            K = np.dot(np.dot(P, H.T), np.linalg.inv(S))
+            
+            # Update the state
+            y = Z - np.dot(H, x)
+            x = x + np.dot(K, y)
+            
+            # Update the error covariance
+            P = P - np.dot(np.dot(K, H), P)
+            
+            predicted_position = [x[0,0], x[1,0]]
+        
+        updated_tracking_points.append(predicted_position)
+    
+    return updated_tracking_points
 
-frame_dict = load_obj_each_frame("object_to_track.json")
-filtered_positions = alpha_beta_filter(frame_dict['obj'])
+frame_dict = load_obj_each_frame("part_1_object_tracking.json")
+frame_dict1 = load_obj_each_frame("refilled_tracking_points.json")
+frame_dict2 = load_obj_each_frame("refilled_tracking_points2.json")
+frame_dict3 = load_obj_each_frame("reversed_tracking_points3.json")
+frame_dict4 = load_obj_each_frame("smoothed_tracking_points.json")
+frame_dict5 = load_obj_each_frame("modified_tracking_points2.json")
+tracking_original_points = load_obj_each_frame("part_1_object_tracking.json")
+tracking_points = load_obj_each_frame("part_1_object_tracking_modified.json")
+
+frame_dict10 = kalman_filter(tracking_points['obj'], tracking_original_points['obj'])
+
+print(len(frame_dict['obj']), len(frame_dict10))
+# filtered_positions = alpha_beta_filter(frame_dict['obj'])
 video_file = "commonwealth.mp4"
-draw_target_object_center(video_file,filtered_positions)
+# draw_target_object_center(video_file,filtered_positions)
+
+
+draw_target_object_center(video_file,frame_dict10)
 
 # part 2:
 
