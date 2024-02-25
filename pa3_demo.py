@@ -2,6 +2,7 @@
 import json
 import cv2 as cv
 import numpy as np
+from scipy.optimize import linear_sum_assignment
 # from google.colab.patches import cv2_imshow
 
 # part 1:
@@ -120,17 +121,82 @@ draw_target_object_center(video_file,frame_dict10)
 
 # part 2:
 
-def draw_object(object_dict,image,color = (0, 255, 0), thickness = 2,c_color= \
-                (255, 0, 0)):
+def draw_object(object_dict,image,color = (0, 255, 0), thickness = 2, text_color= (255, 0, 0)):
   # draw box
   x = object_dict['x_min']
   y = object_dict['y_min']
   width = object_dict['width']
   height = object_dict['height']
   image = cv.rectangle(image, (x, y), (x + width, y + height), color, thickness)
+  object_id = object_dict['id']
+  label = str(object_id)
+  cv.putText(image, label, (x, y - 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 2)
+
   return image
 
+def initialize_tracks(frame_data):
+    tracks = []
+    next_id = 0
+    for detection in frame_data:
+        detection['id'] = next_id  # Assign an ID
+        tracks.append(detection)
+        next_id += 1
+    return tracks, next_id
+
+def compute_cost_matrix(current_detections, previous_tracks):
+    cost_matrix = np.zeros((len(current_detections), len(previous_tracks)), dtype=np.float32)
+    
+    for i, current_det in enumerate(current_detections):
+        for j, prev_track in enumerate(previous_tracks):
+            # Calculate the centroid of each bounding box
+            current_centroid = np.array([current_det['x_min'] + current_det['width'] / 2.0,
+                                         current_det['y_min'] + current_det['height'] / 2.0])
+            prev_centroid = np.array([prev_track['x_min'] + prev_track['width'] / 2.0,
+                                      prev_track['y_min'] + prev_track['height'] / 2.0])
+            
+            # Compute the Euclidean distance between centroids
+            distance = np.linalg.norm(current_centroid - prev_centroid)
+            
+            # Set the distance as the cost for the matrix
+            cost_matrix[i, j] = distance
+    
+    return cost_matrix
+
+def update_tracks(assignments, tracks, current_detections, next_id):
+    updated_tracks = []
+    matched_detections = set()
+
+    # Process assignments to update existing tracks
+    for detection_idx, track_idx in assignments:
+        # Ensure the detection index is within the range of current detections
+        if True:
+            detection = current_detections[detection_idx]
+            track = tracks[track_idx]
+            track['x_min'] = detection['x_min']
+            track['y_min'] = detection['y_min']
+            track['width'] = detection['width']
+            track['height'] = detection['height']
+            updated_tracks.append(track)
+            matched_detections.add(detection_idx)
+        else:
+            # Handle the case where the detection index is out of range
+            # This could involve marking the track as lost or handling it in another appropriate way
+            pass
+
+    # Add new tracks for unmatched detections
+    for i, detection in enumerate(current_detections):
+        if i not in matched_detections:
+            detection['id'] = next_id
+            updated_tracks.append(detection)
+            next_id += 1
+
+    return updated_tracks, next_id
+
+
 def draw_objects_in_video(video_file,frame_dict):
+  # Initialize variables
+  tracks, next_id = initialize_tracks(frame_dict["0"])  # Assuming frame_dict["0"] contains the initial frame detections
+  
   count = 0
   cap = cv.VideoCapture(video_file)
   frames = []
@@ -141,12 +207,24 @@ def draw_objects_in_video(video_file,frame_dict):
     image = cv.resize(image, (700, 500)) # make sure your video is resize to this size, otherwise the coords in the data file won't work !!!
     ######!!!!#######
     obj_list = frame_dict[str(count)]
-    for obj in obj_list:
+    
+    # Compute cost matrix between current detections and existing tracks
+    cost_matrix = compute_cost_matrix(obj_list, tracks)
+  
+    # Solve the assignment problem
+    row_ind, col_ind = linear_sum_assignment(cost_matrix)
+    print(row_ind, col_ind)
+
+    # Update tracks with new assignments
+    tracks, next_id = update_tracks(zip(row_ind, col_ind), tracks, obj_list, next_id)
+    print(next_id)
+    for obj in tracks:
       image = draw_object(obj,image)
     vidwrite.write(image)
     count+=1
     ok, image = cap.read()
   vidwrite.release()
+
 
 frame_dict = load_obj_each_frame("frame_dict.json")
 video_file = "commonwealth.mp4"
