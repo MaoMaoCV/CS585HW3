@@ -162,14 +162,15 @@ def compute_cost_matrix(current_detections, previous_tracks):
     
     return cost_matrix
 
-def update_tracks(assignments, tracks, current_detections, next_id):
+def update_tracks(assignments, tracks, current_detections, next_id, cost_matrix):
     updated_tracks = []
+    lost_tracks = []
     matched_detections = set()
 
     # Process assignments to update existing tracks
     for detection_idx, track_idx in assignments:
         # Ensure the detection index is within the range of current detections
-        if True:
+        if cost_matrix[detection_idx, track_idx] < 50:
             detection = current_detections[detection_idx]
             track = tracks[track_idx]
             track['x_min'] = detection['x_min']
@@ -181,7 +182,8 @@ def update_tracks(assignments, tracks, current_detections, next_id):
         else:
             # Handle the case where the detection index is out of range
             # This could involve marking the track as lost or handling it in another appropriate way
-            pass
+            lost_tracks.append(tracks[track_idx])
+
 
     # Add new tracks for unmatched detections
     for i, detection in enumerate(current_detections):
@@ -213,18 +215,18 @@ def draw_objects_in_video(video_file,frame_dict):
   
     # Solve the assignment problem
     row_ind, col_ind = linear_sum_assignment(cost_matrix)
-    print(row_ind, col_ind)
 
+    
     # Update tracks with new assignments
-    tracks, next_id = update_tracks(zip(row_ind, col_ind), tracks, obj_list, next_id)
-    print(next_id)
+    tracks, next_id = update_tracks(zip(row_ind, col_ind), tracks, obj_list, next_id, cost_matrix)
+    
+
     for obj in tracks:
       image = draw_object(obj,image)
     vidwrite.write(image)
     count+=1
     ok, image = cap.read()
   vidwrite.release()
-
 
 frame_dict = load_obj_each_frame("frame_dict.json")
 video_file = "commonwealth.mp4"
