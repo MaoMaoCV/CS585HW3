@@ -56,8 +56,8 @@ for i in range(1, len(modified_tracking_points)):
             modified_tracking_points[i][0] = modified_tracking_points[i-1][0] - 0.55* pow(0.999, i)
             modified_tracking_points[i][1] = modified_tracking_points[i-1][1] - 0.475* pow(0.999, i)
         if i < 250 and i > forth_threashold - 1:
-            modified_tracking_points[i][0] = modified_tracking_points[i-1][0] - 0.55* pow(0.9999, i)
-            modified_tracking_points[i][1] = modified_tracking_points[i-1][1] - 0.395* pow(0.9999, i)
+            modified_tracking_points[i][0] = modified_tracking_points[i-1][0] - 0.55 * pow(0.9999, i)
+            modified_tracking_points[i][1] = modified_tracking_points[i-1][1] - 0.395 * pow(0.9999, i)
 
 # Checking the first few elements to verify the changes
 print(modified_tracking_points)

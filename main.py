@@ -152,6 +152,10 @@ refilled_tracking_points = load_obj_each_frame("modified_tracking_points2.json")
 #         best_params = (alpha, beta, deceleration_factor)
 
 # print(best_params, best_smoothness)
+# tracking_original_points = load_obj_each_frame("part_1_object_tracking.json")
+# tracking_points = load_obj_each_frame("part_1_object_tracking_modified.json")
+
+# kalman_filter(tracking_points, tracking_original_points)
 
 alpha_range = np.arange(0.3, 1, 0.1)
 # alpha_range = np.array([0.9])

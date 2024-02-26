@@ -16,7 +16,7 @@ def draw_target_object_center(video_file,obj_centers):
   cap = cv.VideoCapture(video_file)
   frames = []
   ok, image = cap.read()
-  vidwrite = cv.VideoWriter("part_1_demo.mp4", cv.VideoWriter_fourcc(*'MP4V'), 30, (700,500))
+  vidwrite = cv.VideoWriter("part_1_demo_alpha-beta.mp4", cv.VideoWriter_fourcc(*'MP4V'), 30, (700,500))
   while ok:
     pos_x,pos_y = obj_centers[count]
     count+=1
@@ -27,7 +27,7 @@ def draw_target_object_center(video_file,obj_centers):
     vidwrite.write(image)
     ok, image = cap.read()
   vidwrite.release()
-# 0.33
+
 def alpha_beta_filter(data, alpha=0.0037, beta= 0.0032, deceleration_factor=0.25):
     x_hat = data[1][0]  # Initial x position
     y_hat = data[1][1]  # Initial y position
@@ -46,10 +46,10 @@ def alpha_beta_filter(data, alpha=0.0037, beta= 0.0032, deceleration_factor=0.25
         vy_hat = (vy_hat + (beta / dt) * (zy - y_pred)) * deceleration_factor
         estimated_positions.append((x_hat, y_hat))
     return estimated_positions
+
 def kalman_filter(tracking_points, tracking_original_points):
     # Kalman filter initialization
     dt = 1  # time step
-    
     # State transition matrix (assuming constant velocity model)
     A = np.array([[1, 0, dt, 0],
                   [0, 1, 0, dt],
@@ -100,24 +100,68 @@ def kalman_filter(tracking_points, tracking_original_points):
     return updated_tracking_points
 
 frame_dict = load_obj_each_frame("part_1_object_tracking.json")
-frame_dict1 = load_obj_each_frame("refilled_tracking_points.json")
-frame_dict2 = load_obj_each_frame("refilled_tracking_points2.json")
-frame_dict3 = load_obj_each_frame("reversed_tracking_points3.json")
-frame_dict4 = load_obj_each_frame("smoothed_tracking_points.json")
+# frame_dict1 = load_obj_each_frame("refilled_tracking_points.json")
+# frame_dict2 = load_obj_each_frame("refilled_tracking_points2.json")
+# frame_dict3 = load_obj_each_frame("reversed_tracking_points3.json")
+# frame_dict4 = load_obj_each_frame("smoothed_tracking_points.json")
 frame_dict5 = load_obj_each_frame("modified_tracking_points2.json")
 tracking_original_points = load_obj_each_frame("part_1_object_tracking.json")
 tracking_points = load_obj_each_frame("part_1_object_tracking_modified.json")
 
 frame_dict10 = kalman_filter(tracking_points['obj'], tracking_original_points['obj'])
 
-print(len(frame_dict['obj']), len(frame_dict10))
-# filtered_positions = alpha_beta_filter(frame_dict['obj'])
+# print(len(frame_dict['obj']), frame_dict5)
+filtered_positions = alpha_beta_filter(frame_dict['obj'])
 video_file = "commonwealth.mp4"
 # draw_target_object_center(video_file,filtered_positions)
 
+draw_target_object_center(video_file,frame_dict5['obj'])
 
-draw_target_object_center(video_file,frame_dict10)
+# draw_target_object_center(video_file,frame_dict5['obj'])
+modified_data = {'obj': frame_dict5}
+# print(modified_data)
+# Define the path for the new JSON file
+modified_file_path = 'alpha-beta.json'
 
+def draw_kalman_trace(video_file, kalman_points):
+    cap = cv.VideoCapture(video_file)
+    ok, image = cap.read()
+    if not ok:
+        return "Error: Could not read video file."
+    
+    # Adjust the output path to ensure it's correctly saved in the sandbox environment
+    vidwrite = cv.VideoWriter("part_1_demo.mp4", cv.VideoWriter_fourcc(*'MP4V'), 30, (700,500))
+    
+    trace_image = np.zeros((500, 700, 3), dtype=np.uint8)  # Predefining the trace image size based on the resized video frames
+    
+    for count, kalman_point in enumerate(kalman_points):
+        if count > 0:  # Skip drawing line for the first point where there's no previous point
+            # Draw a thick line between the previous and current Kalman filtered points for visibility
+            cv.line(trace_image, (int(kalman_points[count-1][0]), int(kalman_points[count-1][1])), (int(kalman_point[0]), int(kalman_point[1])), (255, 0, 0), 5)
+    
+    # Process each frame in the video
+    while ok:
+        image = cv.resize(image, (700, 500))  # Resize to ensure consistency with coordinates
+        
+        # Combine the current frame with the trace image
+        combined_image = cv.addWeighted(image, 1, trace_image, 0.8, 0)
+        vidwrite.write(combined_image)
+        ok, image = cap.read()
+    
+    vidwrite.release()
+    return "part_1_demo.mp4"
+
+video_file = "part_1_demo_alpha-beta.mp4" 
+kalman_filtered_points = frame_dict10
+# Draw the target object center and the Kalman filter trace on the video
+output_video_path = draw_kalman_trace(video_file, kalman_filtered_points)
+output_video_path
+
+
+# Part 2
+# Save the modified data as a JSON file
+with open(modified_file_path, 'w') as file:
+  json.dump(modified_data, file)
 # part 2:
 
 def draw_object(object_dict,image,color = (0, 255, 0), thickness = 2,c_color= \
@@ -151,4 +195,3 @@ def draw_objects_in_video(video_file,frame_dict):
 frame_dict = load_obj_each_frame("frame_dict.json")
 video_file = "commonwealth.mp4"
 draw_objects_in_video(video_file,frame_dict)
-
