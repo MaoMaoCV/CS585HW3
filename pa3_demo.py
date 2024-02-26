@@ -5,6 +5,8 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 # from google.colab.patches import cv2_imshow
 
+lost_tracks = []
+lost_tracks_num = set()
 # part 1:
 
 def load_obj_each_frame(data_file):
@@ -110,13 +112,7 @@ tracking_original_points = load_obj_each_frame("part_1_object_tracking.json")
 tracking_points = load_obj_each_frame("part_1_object_tracking_modified.json")
 
 frame_dict10 = kalman_filter(tracking_points['obj'], tracking_original_points['obj'])
-
-print(len(frame_dict['obj']), len(frame_dict10))
-# filtered_positions = alpha_beta_filter(frame_dict['obj'])
 video_file = "commonwealth.mp4"
-# draw_target_object_center(video_file,filtered_positions)
-
-
 draw_target_object_center(video_file,frame_dict10)
 
 # part 2:
@@ -164,13 +160,13 @@ def compute_cost_matrix(current_detections, previous_tracks):
 
 def update_tracks(assignments, tracks, current_detections, next_id, cost_matrix):
     updated_tracks = []
-    lost_tracks = []
+    global lost_tracks, lost_tracks_num
     matched_detections = set()
 
     # Process assignments to update existing tracks
     for detection_idx, track_idx in assignments:
         # Ensure the detection index is within the range of current detections
-        if cost_matrix[detection_idx, track_idx] < 50:
+        if cost_matrix[detection_idx, track_idx] < 70:
             detection = current_detections[detection_idx]
             track = tracks[track_idx]
             track['x_min'] = detection['x_min']
@@ -180,10 +176,18 @@ def update_tracks(assignments, tracks, current_detections, next_id, cost_matrix)
             updated_tracks.append(track)
             matched_detections.add(detection_idx)
         else:
-            # Handle the case where the detection index is out of range
-            # This could involve marking the track as lost or handling it in another appropriate way
-            lost_tracks.append(tracks[track_idx])
-
+            if track['id'] not in lost_tracks_num: 
+              lost_tracks.append(tracks[track_idx])
+              lost_tracks_num.add(track['id'])
+            else: 
+              # Find and update the lost track with the same ID
+              for lost_track in lost_tracks:
+                  if lost_track['id'] == track['id']:
+                      lost_track['x_min'] = track['x_min']
+                      lost_track['y_min'] = track['y_min']
+                      lost_track['width'] = track['width']
+                      lost_track['height'] = track['height']
+                      break
 
     # Add new tracks for unmatched detections
     for i, detection in enumerate(current_detections):
@@ -192,10 +196,12 @@ def update_tracks(assignments, tracks, current_detections, next_id, cost_matrix)
             updated_tracks.append(detection)
             next_id += 1
 
+    print(len(lost_tracks), len(lost_tracks_num))
     return updated_tracks, next_id
 
 
 def draw_objects_in_video(video_file,frame_dict):
+  global lost_tracks
   # Initialize variables
   tracks, next_id = initialize_tracks(frame_dict["0"])  # Assuming frame_dict["0"] contains the initial frame detections
   
@@ -226,6 +232,9 @@ def draw_objects_in_video(video_file,frame_dict):
     vidwrite.write(image)
     count+=1
     ok, image = cap.read()
+
+    if len(lost_tracks) > 0: 
+       tracks = tracks + lost_tracks
   vidwrite.release()
 
 frame_dict = load_obj_each_frame("frame_dict.json")
