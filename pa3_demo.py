@@ -115,8 +115,58 @@ frame_dict10 = kalman_filter(tracking_points['obj'], tracking_original_points['o
 video_file = "commonwealth.mp4"
 draw_target_object_center(video_file,frame_dict10)
 
+<<<<<<< Updated upstream
 # part 2:
 
+=======
+draw_target_object_center(video_file,frame_dict5['obj'])
+
+# draw_target_object_center(video_file,frame_dict5['obj'])
+modified_data = {'obj': frame_dict5}
+# print(modified_data)
+# Define the path for the new JSON file
+modified_file_path = 'alpha-beta.json'
+
+def draw_kalman_trace(video_file, kalman_points):
+    cap = cv.VideoCapture(video_file)
+    ok, image = cap.read()
+    if not ok:
+        return "Error: Could not read video file."
+    
+    # Adjust the output path to ensure it's correctly saved in the sandbox environment
+    vidwrite = cv.VideoWriter("part_1_demo.mp4", cv.VideoWriter_fourcc(*'MP4V'), 30, (700,500))
+    
+    trace_image = np.zeros((500, 700, 3), dtype=np.uint8)  # Predefining the trace image size based on the resized video frames
+    
+    for count, kalman_point in enumerate(kalman_points):
+        if count > 0:  # Skip drawing line for the first point where there's no previous point
+            # Draw a thick line between the previous and current Kalman filtered points for visibility
+            cv.line(trace_image, (int(kalman_points[count-1][0]), int(kalman_points[count-1][1])), (int(kalman_point[0]), int(kalman_point[1])), (255, 0, 0), 5)
+    
+    # Process each frame in the video
+    while ok:
+        image = cv.resize(image, (700, 500))  # Resize to ensure consistency with coordinates
+        
+        # Combine the current frame with the trace image
+        combined_image = cv.addWeighted(image, 1, trace_image, 0.8, 0)
+        vidwrite.write(combined_image)
+        ok, image = cap.read()
+    
+    vidwrite.release()
+    return "part_1_demo.mp4"
+
+video_file = "part_1_demo_alpha-beta.mp4" 
+kalman_filtered_points = frame_dict10
+# Draw the target object center and the Kalman filter trace on the video
+output_video_path = draw_kalman_trace(video_file, kalman_filtered_points)
+output_video_path
+
+# part 2:
+
+lost_tracks = []
+lost_tracks_num = set()
+
+>>>>>>> Stashed changes
 def draw_object(object_dict,image,color = (0, 255, 0), thickness = 2, text_color= (255, 0, 0)):
   # draw box
   x = object_dict['x_min']
@@ -133,7 +183,11 @@ def draw_object(object_dict,image,color = (0, 255, 0), thickness = 2, text_color
 def initialize_tracks(frame_data):
     tracks = []
     next_id = 0
+<<<<<<< Updated upstream
     for detection in frame_data:
+=======
+    for detection in frame_data: 
+>>>>>>> Stashed changes
         detection['id'] = next_id  # Assign an ID
         tracks.append(detection)
         next_id += 1
@@ -196,12 +250,19 @@ def update_tracks(assignments, tracks, current_detections, next_id, cost_matrix)
             updated_tracks.append(detection)
             next_id += 1
 
+<<<<<<< Updated upstream
     print(len(lost_tracks), len(lost_tracks_num))
+=======
+>>>>>>> Stashed changes
     return updated_tracks, next_id
 
 
 def draw_objects_in_video(video_file,frame_dict):
+<<<<<<< Updated upstream
   global lost_tracks
+=======
+  global lost_tracks, lost_tracks_num
+>>>>>>> Stashed changes
   # Initialize variables
   tracks, next_id = initialize_tracks(frame_dict["0"])  # Assuming frame_dict["0"] contains the initial frame detections
   
@@ -222,10 +283,16 @@ def draw_objects_in_video(video_file,frame_dict):
     # Solve the assignment problem
     row_ind, col_ind = linear_sum_assignment(cost_matrix)
 
+<<<<<<< Updated upstream
     
     # Update tracks with new assignments
     tracks, next_id = update_tracks(zip(row_ind, col_ind), tracks, obj_list, next_id, cost_matrix)
     
+=======
+    # Update tracks with new assignments
+    tracks, next_id = update_tracks(zip(row_ind, col_ind), tracks, obj_list, next_id, cost_matrix)
+    frame_dict[str(count)] = tracks
+>>>>>>> Stashed changes
 
     for obj in tracks:
       image = draw_object(obj,image)
@@ -235,9 +302,22 @@ def draw_objects_in_video(video_file,frame_dict):
 
     if len(lost_tracks) > 0: 
        tracks = tracks + lost_tracks
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
   vidwrite.release()
+  
+  return frame_dict
 
 frame_dict = load_obj_each_frame("frame_dict.json")
 video_file = "commonwealth.mp4"
+<<<<<<< Updated upstream
 draw_objects_in_video(video_file,frame_dict)
 
+=======
+result = draw_objects_in_video(video_file,frame_dict)
+
+with open('tracking_data.json', 'w') as file:
+    json.dump(result, file, indent=4)
+>>>>>>> Stashed changes
